@@ -89,6 +89,15 @@ try {
     Invoke-Robocopy -Source $InstallRoot -Destination $backup
     $backupComplete = $true
 
+    # Нельзя смешивать плагины разных версий GStreamer. Старый каталог
+    # изолируем целиком, как в проверенной тестовой установке.
+    $pluginTarget = Join-Path $InstallRoot 'lib\gstreamer-1.0'
+    if (Test-Path -LiteralPath $pluginTarget) {
+        $savedPluginTarget = Join-Path $InstallRoot "lib\gstreamer-1.0.pre-patch-$timestamp"
+        Move-Item -LiteralPath $pluginTarget -Destination $savedPluginTarget
+    }
+    New-Item -ItemType Directory -Path $pluginTarget -Force | Out-Null
+
     foreach ($file in $manifest.Files) {
         $sourceFile = Join-Path $extract $file.Path
         $targetFile = Join-Path $InstallRoot $file.Path
@@ -128,4 +137,3 @@ finally {
         Remove-Item -LiteralPath $temp -Recurse -Force -ErrorAction SilentlyContinue
     }
 }
-
