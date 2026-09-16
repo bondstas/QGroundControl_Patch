@@ -1,9 +1,9 @@
 #Requires -Version 5.1
 [CmdletBinding()]
 param(
-    [string]$RuntimeRoot = 'C:\Program Files\QGroundContro_workl',
+    [string]$RuntimeRoot = 'D:\QGC-Chupacabra-GStreamer-New',
     [string]$Repository = 'bondstas/QGroundControl_Patch',
-    [string]$Version = 'v1.0.0'
+    [string]$Version = 'v1.0.1'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -12,7 +12,7 @@ Set-StrictMode -Version 2.0
 $sourceBin = Join-Path $RuntimeRoot 'bin'
 $sourcePlugins = Join-Path $RuntimeRoot 'lib\gstreamer-1.0'
 if (-not (Test-Path -LiteralPath $sourceBin) -or -not (Test-Path -LiteralPath $sourcePlugins)) {
-    throw "Не найден проверенный runtime QGC 5.1: $RuntimeRoot"
+    throw "Не найдена проверенная рабочая Chupacabra: $RuntimeRoot"
 }
 
 if (-not (Get-Command gh.exe -ErrorAction SilentlyContinue)) {
@@ -77,4 +77,3 @@ finally {
         Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue
     }
 }
-
