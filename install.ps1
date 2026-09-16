@@ -3,7 +3,7 @@
 param(
     [string]$InstallRoot = 'C:\Program Files\QGroundControl',
     [string]$BackupRoot = 'C:\QGC-Backups',
-    [string]$Version = 'v1.0.0'
+    [string]$Version = 'v1.0.1'
 )
 
 $ErrorActionPreference = 'Stop'
