@@ -19,7 +19,7 @@ function Assert-Administrator {
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
     $principal = New-Object Security.Principal.WindowsPrincipal($identity)
     if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-        throw 'Запустите PowerShell от имени администратора.'
+        throw 'Run PowerShell as Administrator.'
     }
 }
 
@@ -29,7 +29,7 @@ function Invoke-Robocopy {
     $mode = if ($Mirror) { '/MIR' } else { '/E' }
     & robocopy.exe $Source $Destination $mode /COPY:DAT /DCOPY:DAT /R:2 /W:1 /XJ /NFL /NDL /NP
     if ($LASTEXITCODE -gt 7) {
-        throw "Robocopy завершился с ошибкой ${LASTEXITCODE}: $Source -> $Destination"
+        throw "Robocopy failed with exit code ${LASTEXITCODE}: $Source -> $Destination"
     }
 }
 
@@ -37,12 +37,12 @@ Assert-Administrator
 
 $running = Get-Process QGroundControl -ErrorAction SilentlyContinue
 if ($running) {
-    throw 'Полностью закройте все процессы QGroundControl перед установкой.'
+    throw 'Close all QGroundControl processes before installing.'
 }
 
 $exe = Join-Path $InstallRoot 'bin\QGroundControl.exe'
 if (-not (Test-Path -LiteralPath $exe)) {
-    throw "Chupacabra не найдена: $exe"
+    throw "Chupacabra was not found: $exe"
 }
 
 $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
@@ -57,40 +57,39 @@ $backupComplete = $false
 try {
     New-Item -ItemType Directory -Path $temp, $extract -Force | Out-Null
 
-    Write-Host "Загрузка патча $Version..." -ForegroundColor Cyan
+    Write-Host "Downloading patch $Version..." -ForegroundColor Cyan
     Invoke-WebRequest -UseBasicParsing -Uri $ZipUrl -OutFile $zip
     Invoke-WebRequest -UseBasicParsing -Uri $HashUrl -OutFile $hashFile
 
     $expectedZipHash = ((Get-Content -LiteralPath $hashFile -Raw).Trim() -split '\s+')[0].ToUpperInvariant()
     $actualZipHash = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToUpperInvariant()
     if ($expectedZipHash -ne $actualZipHash) {
-        throw 'SHA-256 загруженного архива не совпадает.'
+        throw 'Downloaded archive SHA-256 mismatch.'
     }
 
     Expand-Archive -LiteralPath $zip -DestinationPath $extract -Force
     $manifestPath = Join-Path $extract 'manifest.json'
     if (-not (Test-Path -LiteralPath $manifestPath)) {
-        throw 'В архиве отсутствует manifest.json.'
+        throw 'manifest.json is missing from the archive.'
     }
 
     $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
     foreach ($file in $manifest.Files) {
         $payloadPath = Join-Path $extract $file.Path
         if (-not (Test-Path -LiteralPath $payloadPath)) {
-            throw "В архиве отсутствует: $($file.Path)"
+            throw "Archive file is missing: $($file.Path)"
         }
         $actual = (Get-FileHash -LiteralPath $payloadPath -Algorithm SHA256).Hash
         if ($actual -ne $file.SHA256) {
-            throw "Неверный SHA-256 файла: $($file.Path)"
+            throw "File SHA-256 mismatch: $($file.Path)"
         }
     }
 
-    Write-Host "Резервная копия: $backup" -ForegroundColor Cyan
+    Write-Host "Creating backup: $backup" -ForegroundColor Cyan
     Invoke-Robocopy -Source $InstallRoot -Destination $backup
     $backupComplete = $true
 
-    # Нельзя смешивать плагины разных версий GStreamer. Старый каталог
-    # изолируем целиком, как в проверенной тестовой установке.
+    # Never mix plugins from different GStreamer versions.
     $pluginTarget = Join-Path $InstallRoot 'lib\gstreamer-1.0'
     if (Test-Path -LiteralPath $pluginTarget) {
         $savedPluginTarget = Join-Path $InstallRoot "lib\gstreamer-1.0.pre-patch-$timestamp"
@@ -108,7 +107,7 @@ try {
 
     $currentExeHash = (Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash
     if ($currentExeHash -ne $originalExeHash) {
-        throw 'Защитная проверка не пройдена: кастомный QGroundControl.exe изменился.'
+        throw 'Safety check failed: custom QGroundControl.exe was modified.'
     }
 
     [ordered]@{
@@ -120,15 +119,15 @@ try {
         FileCount = @($manifest.Files).Count
     } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $InstallRoot 'PATCH-INSTALLED.json') -Encoding UTF8
 
-    Write-Host 'Патч успешно установлен в основную Chupacabra.' -ForegroundColor Green
-    Write-Host "Резервная копия: $backup"
+    Write-Host 'Patch installed successfully.' -ForegroundColor Green
+    Write-Host "Backup: $backup"
 }
 catch {
-    Write-Host "Ошибка: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red
     if ($backupComplete) {
-        Write-Host 'Автоматический откат из резервной копии...' -ForegroundColor Yellow
+        Write-Host 'Rolling back from backup...' -ForegroundColor Yellow
         Invoke-Robocopy -Source $backup -Destination $InstallRoot -Mirror
-        Write-Host 'Исходная версия восстановлена.' -ForegroundColor Green
+        Write-Host 'Original installation restored.' -ForegroundColor Green
     }
     throw
 }
