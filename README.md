@@ -1,3 +1,6 @@
+# QGroundControl Chupacabra GStreamer Patch
+
+Патч обновляет GStreamer/RTSP в кастомной сборке **3 Assault Brigade / NOVA – Chupacabra Squad QGroundControl**, сохраняя кастомный `QGroundControl.exe` и функции управления камерой.
 
 Исправленная проблема: старый GStreamer 1.22.12 не завершает Digest-аутентификацию RTSP с некоторыми камерами Dahua и не получает SDP. Проверенный новый runtime позволяет воспроизводить тот же поток.
 
@@ -19,4 +22,20 @@ irm https://raw.githubusercontent.com/bondstas/QGroundControl_Patch/main/install
 - проверяет, что кастомный `QGroundControl.exe` не изменился;
 - автоматически откатывается при ошибке.
 
+## Публикация Release
 
+На ПК, где установлен проверенный QGC 5.1 runtime:
+
+```powershell
+winget install GitHub.cli
+gh auth login
+powershell -ExecutionPolicy Bypass -File .\build-release.ps1
+```
+
+Скрипт создаст `v1.0.1` Release с ZIP-архивом и SHA-256 непосредственно из проверенной рабочей копии на `D:`. Бинарные DLL не хранятся непосредственно в истории Git.
+
+## Пути по умолчанию
+
+- Chupacabra: `C:\Program Files\QGroundControl`
+- проверенная рабочая копия: `D:\QGC-Chupacabra-GStreamer-New`
+- резервные копии: `C:\QGC-Backups`
