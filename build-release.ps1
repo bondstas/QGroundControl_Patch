@@ -12,16 +12,16 @@ Set-StrictMode -Version 2.0
 $sourceBin = Join-Path $RuntimeRoot 'bin'
 $sourcePlugins = Join-Path $RuntimeRoot 'lib\gstreamer-1.0'
 if (-not (Test-Path -LiteralPath $sourceBin) -or -not (Test-Path -LiteralPath $sourcePlugins)) {
-    throw "Не найдена проверенная рабочая Chupacabra: $RuntimeRoot"
+    throw "Verified working Chupacabra was not found: $RuntimeRoot"
 }
 
 if (-not (Get-Command gh.exe -ErrorAction SilentlyContinue)) {
-    throw 'Не найден GitHub CLI (gh.exe). Установите: winget install GitHub.cli'
+    throw 'GitHub CLI (gh.exe) was not found.'
 }
 
 & gh.exe auth status
 if ($LASTEXITCODE -ne 0) {
-    throw 'Выполните gh auth login и повторите запуск.'
+    throw 'Run gh auth login and try again.'
 }
 
 $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
@@ -42,7 +42,7 @@ try {
 
     & robocopy.exe $sourcePlugins $payloadPlugins /E /COPY:DAT /DCOPY:DAT /R:2 /W:1 /XJ /NFL /NDL /NP
     if ($LASTEXITCODE -gt 7) {
-        throw "Ошибка копирования GStreamer-плагинов: $LASTEXITCODE"
+        throw "Failed to copy GStreamer plugins: $LASTEXITCODE"
     }
 
     $files = Get-ChildItem -LiteralPath $payload -File -Recurse | ForEach-Object {
@@ -64,13 +64,13 @@ try {
     $assetHash = (Get-FileHash -LiteralPath $asset -Algorithm SHA256).Hash
     "$assetHash  $assetName" | Set-Content -LiteralPath $hashFile -Encoding ASCII
 
-    & gh.exe release create $Version $asset $hashFile --repo $Repository --title "QGroundControl Chupacabra GStreamer Patch $Version" --notes "Обновление GStreamer/RTSP для Dahua Digest authentication. Перед установкой создаётся полная резервная копия."
+    & gh.exe release create $Version $asset $hashFile --repo $Repository --title "QGroundControl Chupacabra GStreamer Patch $Version" --notes "GStreamer/RTSP update for Dahua Digest authentication. The installer creates a full backup before changing files."
     if ($LASTEXITCODE -ne 0) {
-        throw "Не удалось создать GitHub Release $Version."
+        throw "Failed to create GitHub Release $Version."
     }
 
-    Write-Host "Release $Version опубликован." -ForegroundColor Green
-    Write-Host "Однокомандная установка: irm https://raw.githubusercontent.com/$Repository/main/install.ps1 | iex"
+    Write-Host "Release $Version published." -ForegroundColor Green
+    Write-Host "One-command install: irm https://raw.githubusercontent.com/$Repository/main/install.ps1 | iex"
 }
 finally {
     if (Test-Path -LiteralPath $work) {
